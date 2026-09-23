@@ -5,14 +5,14 @@ public class Rule {
     private final int questionId;
     private final int optionNumber;
     private final Technology technology;
-    private final double coefficient;
+    private final double weight;
 
 
-    public Rule(int questionId, int optionNumber, Technology technology, double coefficient) {
+    public Rule(int questionId, int optionNumber, Technology technology, double weight) {
         this.questionId = questionId;
         this.optionNumber = optionNumber;
         this.technology = technology;
-        this.coefficient = coefficient;
+        this.weight = weight;
     }
 
     public int getQuestionId() {
@@ -27,7 +27,7 @@ public class Rule {
         return technology;
     }
 
-    public double getCoefficient() {
-        return coefficient;
+    public double getWeight() {
+        return weight;
     }
 }

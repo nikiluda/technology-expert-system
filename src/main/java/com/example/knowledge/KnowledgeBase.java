@@ -16,9 +16,7 @@ public class KnowledgeBase {
     public KnowledgeBase(List<Question> questions, List<Technology> technologies, List<Rule> rules) {
         this.questions = questions;
         this.technologies = technologies;
-        this.rules = new ArrayList<>();
-
-        createRules();
+        this.rules = rules;
     }
 
     public List<Question> getQuestions() {
@@ -207,16 +205,22 @@ public class KnowledgeBase {
                 )
         );
 
+        List<Technology> technologies = createTechnologies();
 
-        return new KnowledgeBase(
+        List<Rule> rules = new ArrayList<>();
+
+        KnowledgeBase knowledgeBase = new KnowledgeBase(
                 questions,
-                List.of(),
-                List.of()
-
+                technologies,
+                rules
         );
+
+        knowledgeBase.createRules();
+
+        return knowledgeBase;
     }
 
-    private List<Technology> createTechnologies() {
+    private static List<Technology> createTechnologies() {
         Technology java = new Technology(
                 "Java",
                 "Универсальный язык для корпоративных и backend-систем",
@@ -405,6 +409,8 @@ public class KnowledgeBase {
         addRules(14, q14Weights);
         addRules(15, q15Weights);
 
+
+        //TODO: убрать в будущем
         System.out.println("Questions: " + questions.size());
         System.out.println("Technologies: " + technologies.size());
         System.out.println("Rules: " + rules.size());
