@@ -5,7 +5,9 @@ import com.example.model.Answer;
 import com.example.model.RecommendationResult;
 import com.example.model.Rule;
 import com.example.model.Technology;
+import com.example.model.TechnologyCategory;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,31 +17,51 @@ public class InferenceEngine {
 
     private final KnowledgeBase knowledgeBase;
 
-
     public InferenceEngine(KnowledgeBase knowledgeBase) {
         this.knowledgeBase = knowledgeBase;
     }
 
-    public Map<Technology,Double> calculateScores(List<Answer> answers) {
+    public Map<TechnologyCategory, Map<Technology, Double>> calculateScores(
+            List<Answer> answers) {
 
-        Map<Technology, Double> scores = new HashMap<>();
+        Map<TechnologyCategory, Map<Technology, Double>> scores =
+                new HashMap<>();
 
         for (Technology technology : knowledgeBase.getTechnologies()) {
-            scores.put(technology, technology.getPrior());
+
+            scores
+                    .computeIfAbsent(
+                            technology.getCategory(),
+                            category -> new HashMap<>()
+                    )
+                    .put(
+                            technology,
+                            technology.getPrior()
+                    );
         }
 
         for (Answer answer : answers) {
+
             for (Rule rule : knowledgeBase.getRules()) {
 
-                if (rule.getQuestionId() == answer.getQuestionId() && rule.getOptionNumber() == answer.getOptionNumber()) {
+                if (rule.getQuestionId() == answer.getQuestionId()
+                        && rule.getOptionNumber() == answer.getOptionNumber()) {
 
                     Technology technology = rule.getTechnology();
 
-                    double currentScore = scores.get(technology);
+                    Map<Technology, Double> categoryScores =
+                            scores.get(technology.getCategory());
 
-                    double newScore = currentScore * rule.getWeight();
+                    double currentScore =
+                            categoryScores.get(technology);
 
-                    scores.put(technology, newScore);
+                    double newScore =
+                            currentScore * rule.getWeight();
+
+                    categoryScores.put(
+                            technology,
+                            newScore
+                    );
                 }
             }
         }
@@ -47,46 +69,45 @@ public class InferenceEngine {
         return scores;
     }
 
+    public Map<TechnologyCategory, Map<Technology, Double>> normalizeScores(
+            Map<TechnologyCategory, Map<Technology, Double>> scores) {
 
-    public Map<Technology, Double> normalizeScores(
-            Map<Technology, Double> scores) {
+        Map<TechnologyCategory, Map<Technology, Double>> normalizedScores =
+                new HashMap<>();
 
-        double totalScore = scores.values()
-                .stream()
-                .mapToDouble(Double::doubleValue)
-                .sum();
+        for (Map.Entry<TechnologyCategory, Map<Technology, Double>> categoryEntry
+                : scores.entrySet()) {
 
-        Map<Technology, Double> normalizedScores = new HashMap<>();
+            Map<Technology, Double> categoryScores =
+                    categoryEntry.getValue();
 
-        for (Map.Entry<Technology, Double> entry : scores.entrySet()) {
+            double totalScore = categoryScores.values()
+                    .stream()
+                    .mapToDouble(Double::doubleValue)
+                    .sum();
 
-            double normalizedScore =
-                    entry.getValue() / totalScore;
+            Map<Technology, Double> normalizedCategoryScores =
+                    new HashMap<>();
+
+            for (Map.Entry<Technology, Double> technologyEntry
+                    : categoryScores.entrySet()) {
+
+                double normalizedScore =
+                        technologyEntry.getValue() / totalScore;
+
+                normalizedCategoryScores.put(
+                        technologyEntry.getKey(),
+                        normalizedScore
+                );
+            }
 
             normalizedScores.put(
-                    entry.getKey(),
-                    normalizedScore
+                    categoryEntry.getKey(),
+                    normalizedCategoryScores
             );
         }
 
         return normalizedScores;
-    }
-
-    public Technology findBestTechnology(
-            Map<Technology, Double> normalizedScores) {
-
-        Technology bestTechnology = null;
-        double bestScore = Double.MIN_VALUE;
-
-        for (Map.Entry<Technology, Double> entry : normalizedScores.entrySet()) {
-
-            if (entry.getValue() > bestScore) {
-                bestScore = entry.getValue();
-                bestTechnology = entry.getKey();
-            }
-        }
-
-        return bestTechnology;
     }
 
     public List<Map.Entry<Technology, Double>> sortScores(
@@ -94,26 +115,50 @@ public class InferenceEngine {
 
         return scores.entrySet()
                 .stream()
-                .sorted(Map.Entry.<Technology, Double>comparingByValue().reversed())
+                .sorted(
+                        Map.Entry
+                                .<Technology, Double>comparingByValue()
+                                .reversed()
+                )
                 .collect(Collectors.toList());
     }
 
-    public RecommendationResult createRecommendation(List<Answer> answers) {
+    public RecommendationResult createRecommendation(
+            List<Answer> answers) {
 
-        Map<Technology, Double> scores = calculateScores(answers);
+        Map<TechnologyCategory, Map<Technology, Double>> scores =
+                calculateScores(answers);
 
-        Map<Technology, Double> normalizedScores =
+        Map<TechnologyCategory, Map<Technology, Double>> normalizedScores =
                 normalizeScores(scores);
 
-        List<Map.Entry<Technology, Double>> ranking =
-                sortScores(normalizedScores);
+        Map<TechnologyCategory, List<Map.Entry<Technology, Double>>> rankings =
+                new HashMap<>();
 
-        Technology recommendedTechnology =
-                ranking.get(0).getKey();
+        Map<TechnologyCategory, Technology> recommendations =
+                new HashMap<>();
+
+        for (Map.Entry<TechnologyCategory, Map<Technology, Double>> entry
+                : normalizedScores.entrySet()) {
+
+            TechnologyCategory category = entry.getKey();
+
+            List<Map.Entry<Technology, Double>> ranking =
+                    sortScores(entry.getValue());
+
+            rankings.put(category, ranking);
+
+            if (!ranking.isEmpty()) {
+                recommendations.put(
+                        category,
+                        ranking.get(0).getKey()
+                );
+            }
+        }
 
         return new RecommendationResult(
-                recommendedTechnology,
-                ranking
+                recommendations,
+                rankings
         );
     }
 }

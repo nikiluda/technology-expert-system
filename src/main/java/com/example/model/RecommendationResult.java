@@ -5,20 +5,26 @@ import java.util.Map;
 
 public class RecommendationResult {
 
-    private final Technology recommendedTechnology;
-    private final List<Map.Entry<Technology, Double>> ranking;
+    private final Map<TechnologyCategory, Technology> recommendations;
 
+    private final Map<
+            TechnologyCategory,
+            List<Map.Entry<Technology, Double>>
+            > rankings;
 
-    public RecommendationResult(Technology recommendedTechnology, List<Map.Entry<Technology, Double>> ranking) {
-        this.recommendedTechnology = recommendedTechnology;
-        this.ranking = ranking;
+    public RecommendationResult(
+            Map<TechnologyCategory, Technology> recommendations,
+            Map<TechnologyCategory, List<Map.Entry<Technology, Double>>> rankings) {
+
+        this.recommendations = recommendations;
+        this.rankings = rankings;
     }
 
-    public Technology getRecommendedTechnology() {
-        return recommendedTechnology;
+    public Map<TechnologyCategory, Technology> getRecommendations() {
+        return recommendations;
     }
 
-    public List<Map.Entry<Technology, Double>> getRanking() {
-        return ranking;
+    public Map<TechnologyCategory, List<Map.Entry<Technology, Double>>> getRankings() {
+        return rankings;
     }
 }

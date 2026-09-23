@@ -6,6 +6,7 @@ import com.example.model.Answer;
 import com.example.model.Question;
 import com.example.model.RecommendationResult;
 import com.example.model.Technology;
+import com.example.model.TechnologyCategory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,36 +48,111 @@ public class ConsoleApplication {
                     )
             );
         }
-        InferenceEngine engine = new InferenceEngine(knowledgeBase);
+
+        InferenceEngine engine =
+                new InferenceEngine(knowledgeBase);
 
         RecommendationResult result =
                 engine.createRecommendation(answers);
 
         scanner.close();
 
-        System.out.println();
-        System.out.println("==============================");
-        System.out.println("Результат экспертной системы");
-        System.out.println("==============================");
+        printResult(result);
+    }
 
-        System.out.println(
-                "Рекомендуемая технология: "
-                        + result.getRecommendedTechnology().getName()
+    private static void printResult(
+            RecommendationResult result) {
+
+        System.out.println();
+        System.out.println("============================================================");
+        System.out.println("              РЕЗУЛЬТАТ ЭКСПЕРТНОЙ СИСТЕМЫ");
+        System.out.println("============================================================");
+
+        for (TechnologyCategory category : TechnologyCategory.values()) {
+
+            System.out.println();
+            System.out.println(category);
+
+            List<Map.Entry<Technology, Double>> ranking =
+                    result.getRankings().get(category);
+
+            if (ranking == null || ranking.isEmpty()) {
+                continue;
+            }
+
+            int position = 1;
+
+            for (Map.Entry<Technology, Double> entry : ranking) {
+
+                System.out.printf(
+                        "%d. %-12s %.2f%%%n",
+                        position++,
+                        entry.getKey().getName(),
+                        entry.getValue() * 100
+                );
+            }
+        }
+
+        System.out.println();
+        System.out.println("============================================================");
+        System.out.println("                 РЕКОМЕНДУЕМЫЙ СТЕК");
+        System.out.println("============================================================");
+
+        printRecommendation(
+                result,
+                TechnologyCategory.BACKEND_LANGUAGE,
+                "Backend"
         );
 
-        System.out.println();
-        System.out.println("Рейтинг технологий:");
+        printRecommendation(
+                result,
+                TechnologyCategory.DATABASE,
+                "Database"
+        );
 
-        int position = 1;
+        printRecommendation(
+                result,
+                TechnologyCategory.MESSAGE_BROKER,
+                "Message Broker"
+        );
 
-        for (Map.Entry<Technology, Double> entry : result.getRanking()) {
+        printRecommendation(
+                result,
+                TechnologyCategory.CACHE,
+                "Cache"
+        );
+
+        printRecommendation(
+                result,
+                TechnologyCategory.API,
+                "API"
+        );
+
+        printRecommendation(
+                result,
+                TechnologyCategory.CONTAINERIZATION,
+                "Containerization"
+        );
+
+        System.out.println("============================================================");
+    }
+    private static void printRecommendation(
+            RecommendationResult result,
+            TechnologyCategory category,
+            String categoryName) {
+
+        Technology technology =
+                result.getRecommendations().get(category);
+
+        if (technology != null) {
 
             System.out.printf(
-                    "%d. %s -> %.2f%%%n",
-                    position++,
-                    entry.getKey().getName(),
-                    entry.getValue() * 100
+                    "%-20s %-15s %s%n",
+                    categoryName,
+                    technology.getName(),
+                    technology.getDescription()
             );
         }
     }
+
 }
